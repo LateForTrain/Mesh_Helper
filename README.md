@@ -36,7 +36,7 @@ With a second Meshtastic device connected to a phone or portable system, users c
 Clone the repository and install the required dependencies:
 
 ```bash
-git clone https://github.com/yourusername/Mesh_Helper.git
+git clone https://github.com/LateForTrain/Mesh_Helper.git
 cd Mesh_Helper
 pip install -r requirements.txt
 ```
