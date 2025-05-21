@@ -12,11 +12,15 @@ With a second Meshtastic device connected to a phone or portable system, users c
 - 🔁 **Message Repeater**  
   Automatically repeats any message it receives, useful for basic connectivity tests.
 
-- 📍 **Distance Calculation**  
+- 📍 **Distance Calculation** 
   If the message contains GPS coordinates (latitude and longitude), the app calculates the straight-line (great-circle) distance between the remote and base unit.
+  Example (Remember the : after command, Long and let separated with , and use . for decimal): 
+      Distance: 57.862083, 14,143303
 
 - 📶 **Signal Metrics Reporting**  
   The base unit sends back the RSSI and SNR of received messages, helping users understand signal quality and propagation.
+  Example (Remember the : after command): 
+    Signal:
 
 - 📝 **Event Logging**  
   All events and message data are logged to a file for later analysis.
@@ -36,6 +40,8 @@ git clone https://github.com/yourusername/Mesh_Helper.git
 cd Mesh_Helper
 pip install -r requirements.txt
 ```
+## Setup
+Edit **`settings.json`**: Navigate to the `config` directory and open the `settings.json` file. Enter your base station coordinates here. Don't worry, these coordinates are for local use only and are not loaded onto your Meshtastic device or transmitted.
 
 ## Usage
 
@@ -46,6 +52,8 @@ python mesh_helper.py
 ```
 
 Make sure your Meshtastic device is connected and visible (e.g., `/dev/ttyUSB0` on Linux or `COMx` on Windows).
+
+The base station will only communicate over the DM link, but will receive commands in both public channel and DM.
 
 ## License
 

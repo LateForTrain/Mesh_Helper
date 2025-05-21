@@ -21,11 +21,14 @@ Requirements:
 
 import json
 import logging
-from geopy.distance import geodesic
+import time
 import meshtastic
 import meshtastic.serial_interface
-import meshtastic.util
-from meshtastic import pub
+import re
+from pubsub import pub
+from datetime import datetime
+from geopy.distance import geodesic
+
 
 # Load configuration
 def loadConfig(path='config/settings.json'):
@@ -39,14 +42,72 @@ def loadConfig(path='config/settings.json'):
 
 # Callback for when a packet is received
 def onReceive(packet, interface):
-    logging.info(f"Received packet: {packet}")
-    # TODO: Parse packet, extract info, act accordingly
+        global base_lat, base_long
+        print(base_lat)
+        #print(packet)  # This is a dictionary 
+        try:
+            match packet['decoded']['portnum']:
+                case "TELEMETRY_APP":
+                    print("Telemetry package...")
+                case "TEXT_MESSAGE_APP":
+                    logging.info("Text package...")
+                    text = packet['decoded']['text']
+                    logging.info("Text message: ", text)
+                    mycommand, mylat, mylon = extractData(text)
+                    returnMsg =""
+
+                    if mycommand == "Distance":
+                        reqDistance =calcDistance(mylat, mylon)
+                        returnMsg = "Distance: " + str(round(reqDistance,0)) + " meter"
+                        logging.info(returnMsg)
+                        sendMessage(interface, packet['fromId'], returnMsg)
+                    elif mycommand == "Signal":
+                        # Extract RSSI
+                        rssi = packet.get('rxRssi')
+                        # Extract SNR
+                        snr = packet.get('rxSnr')
+                        # You can then print or use these values
+                        if rssi is not None:
+                            returnMsg = "Received RSSI: " + str(round(rssi,2)) + "dBm"
+                        else:
+                            returnMsg = "Received RSSI: --.-- dBm"
+
+                        if snr is not None:
+                            returnMsg = returnMsg + " Received SNR: " + str(round(snr,2)) + "dB"
+                        else:
+                            returnMsg = returnMsg + " Received SNR: --.-- dB"
+                        logging.info(returnMsg)
+                        sendMessage(interface, packet['fromId'], returnMsg)
+                    elif mycommand == "Time":
+                        current_time = datetime.now()
+                        returnMsg=current_time.strftime("%Y-%m-%d %H:%M")
+                        logging.info(returnMsg)
+                        sendMessage(interface, packet['fromId'], returnMsg)
+                    else:
+                        sendMessage(interface, packet['fromId'], text)
+                case "POSITION_APP":
+                    print("Position package...")
+                case "NODEINFO_APP":
+                    print("NodeInfo package...")
+                case "ALERT_APP":
+                    print("Alert package...")
+                case _:
+                    print("Some other package...")
+        except Exception as e:
+            print("Error parsing packet:", e)
 
 # Callback for when the connection is established
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     logging.info("Connected to Meshtastic device.")
-    interface.pubsub.subscribe(topic)
-    interface.addReceiveHandler(lambda p: onReceive(p, interface))
+    myUser = interface.getMyUser()
+    logging.info("Unit Long Name: "+myUser['longName'])
+    logging.info("Unit Short Name: "+myUser['shortName'])
+    logging.info("Unit Id: "+myUser['id'])
+    logging.info("Model: "+myUser['hwModel'])
+
+# Callback for when the connection is lost
+def onConnectionLost(interface):
+    logging.info("Connection lost")
 
 # Send a message to a specific node
 def sendMessage(interface, toID, message):
@@ -54,9 +115,9 @@ def sendMessage(interface, toID, message):
     interface.sendText(message, destinationId=toID)
 
 # Calculate straight-line distance from received GPS coordinates to home base
-def calcDistance(recvLat, recvLong, baseLat, baseLong):
+def calcDistance(recvLat, recvLong):
     try:
-        point1 = (baseLat, baseLong)
+        point1 = (base_lat, base_long)
         point2 = (recvLat, recvLong)
         return geodesic(point1, point2).meters
     except Exception as e:
@@ -65,25 +126,88 @@ def calcDistance(recvLat, recvLong, baseLat, baseLong):
 
 # Extract data from a received message
 def extractData(recvText):
-    # Placeholder: parse message text for lat, long, etc.
+    # Placeholder: parse message text for command, lat, long, etc.
+    longitude = 0.0
+    latitude = 0.0
+
     try:
-        data = json.loads(recvText)
-        return data.get('lat'), data.get('lon'), data.get('message')
-    except json.JSONDecodeError:
-        logging.warning("Failed to decode message as JSON.")
-        return None, None, recvText
+        pattern = re.compile(r'^(\w+):\s*([-+]?\d*\.\d+|\d+),\s*([-+]?\d*\.\d+|\d+)', re.MULTILINE)
+
+        for match in pattern.finditer(recvText):
+            if match:
+                cmd = match.group(1)
+                longitude = float(match.group(2))
+                latitude = float(match.group(3))
+                print(f'cmd = {cmd}')
+                print(f'longitude = {longitude}')
+                print(f'latitude = {latitude}')
+            else:
+                print("No match found.")
+                cmd = "None"
+        return cmd,longitude,latitude
+         
+    except Exception as e:
+        logging.warning(f"An unexpected error occurred: {e}")
+        return None, None, None
 
 def main():
-    logging.basicConfig(filename='logs/mesh_helper.log', level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s')
+    global base_lat, base_long
+    errorText = ""
+    interface = None # Initialize interface to None outside the try block
 
+    log_filename = f"logs/mesh_helper_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    logging.basicConfig(filename=log_filename, level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+    
+    # Load the config for the base unit.  Remember to update settings.json.
     config = loadConfig()
-    base_id = config.get("base_id", "UNKNOWN")
     base_lat = config.get("base_lat", 0.0)
     base_long = config.get("base_long", 0.0)
 
-    interface = meshtastic.serial_interface.SerialInterface()
-    onConnection(interface)
+    try:
+        logging.info("Good day to MeshBot v0.1")
+        logging.info("Bot is now running. Press Ctrl+C to stop.")
+
+        # Start the Meshtastic serial interface
+        # This might print "No Serial Meshtastic device detected..." if none is found
+        interface = meshtastic.serial_interface.SerialInterface()
+        logging.info("Meshtastic interface object created (attempting connection).")
+
+        # Subscribe to Meshtastic events
+        pub.subscribe(onReceive, "meshtastic.receive")
+        pub.subscribe(onConnection, "meshtastic.connection.established")
+        pub.subscribe(onConnectionLost, "meshtastic.connection.lost")
+
+        # Give the interface a moment to connect or fail to connect
+        time.sleep(3) # A short delay to allow connection attempts
+
+        #Used to check if connected to serial device
+        myLongName = interface.getLongName()
+
+        heartbeatCounter = 0
+        while True:
+            time.sleep(1)
+            if heartbeatCounter == 600:
+                logging.info("Heartbeat: Checking connection status (if connected).")
+                myLongName = interface.getLongName()
+                heartbeatCounter = 0
+            heartbeatCounter += 1
+
+    except KeyboardInterrupt:
+        logging.info("KeyboardInterrupt caught. Exiting...")
+    except Exception as e:
+        # Catch any other unexpected errors during the process
+        logging.error(f"An unexpected error occurred: {e}")
+        errorText = str(e)
+
+    finally:
+        # This ensures the connection is closed cleanly whether there was an error or not
+        if errorText != "'SerialInterface' object has no attribute 'myInfo'": # Only try to close if the interface object was successfully created
+            logging.info("Closing the Meshtastic interface...")
+            interface.close()
+            logging.info("Meshtastic interface closed.")
+        else:
+            logging.info("No Meshtastic interface object was created to close.")
 
 if __name__ == "__main__":
     main()
