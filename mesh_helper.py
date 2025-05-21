@@ -49,18 +49,19 @@ def onReceive(packet, interface):
         try:
             match packet['decoded']['portnum']:
                 case "TELEMETRY_APP":
-                    print("Telemetry package...")
+                    #Still need to understand what we will do here 
+                    msg="Telemetry package..."
                 case "TEXT_MESSAGE_APP":
-                    logging.info("Text package...")
+                    logging.info(f"Text package...")
                     text = packet['decoded']['text']
-                    logging.info("Text message: ", text)
+                    logging.info(f"Text message: {text}")
                     mycommand, mylat, mylon = extractData(text)
                     returnMsg =""
 
                     if mycommand == "Distance":
                         reqDistance =calcDistance(mylat, mylon)
                         returnMsg = "Distance: " + str(round(reqDistance,0)) + " meter"
-                        logging.info(returnMsg)
+                        logging.info(f"{returnMsg}")
                         sendMessage(interface, packet['fromId'], returnMsg)
                     elif mycommand == "Signal":
                         # Extract RSSI
@@ -77,12 +78,12 @@ def onReceive(packet, interface):
                             returnMsg = returnMsg + " Received SNR: " + str(round(snr,2)) + "dB"
                         else:
                             returnMsg = returnMsg + " Received SNR: --.-- dB"
-                        logging.info(returnMsg)
+                        logging.info(f"{returnMsg}")
                         sendMessage(interface, packet['fromId'], returnMsg)
                     elif mycommand == "Time":
                         current_time = datetime.now()
                         returnMsg=current_time.strftime("%Y-%m-%d %H:%M")
-                        logging.info(returnMsg)
+                        logging.info(f"{returnMsg}")
                         sendMessage(interface, packet['fromId'], returnMsg)
                     else:
                         sendMessage(interface, packet['fromId'], text)
@@ -99,21 +100,21 @@ def onReceive(packet, interface):
                     #Still need to understand what we will do here 
                     msg="Some other package..."
         except Exception as e:
-            logging.warning("Error parsing packet:", e)
+            logging.warning(f"Error parsing packet: {e}")
 
 # Callback for when the connection is established
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     logging.info("Connected to Meshtastic device.")
     print("Connected to Meshtastic device.")
     myUser = interface.getMyUser()
-    logging.info("Unit Long Name: "+myUser['longName'])
-    print("Unit Long Name: "+myUser['longName'])
+    logging.info(f"Unit Long Name: {myUser['longName']}")
+    print(f"Unit Long Name: {myUser['longName']}")
     logging.info("Unit Short Name: "+myUser['shortName'])
-    print("Unit Short Name: "+myUser['shortName'])
-    logging.info("Unit Id: "+myUser['id'])
-    print("Unit Id: "+myUser['id'])
-    logging.info("Model: "+myUser['hwModel'])
-    print("Model: "+myUser['hwModel'])
+    print(f"Unit Short Name: {myUser['shortName']}")
+    logging.info(f"Unit Id: {myUser['id']}")
+    print(f"Unit Id: {myUser['id']}")
+    logging.info(f"Model: {myUser['hwModel']}")
+    print(f"Model: {myUser['hwModel']}")
 
 # Callback for when the connection is lost
 def onConnectionLost(interface):
@@ -137,6 +138,7 @@ def calcDistance(recvLat, recvLong):
 # Extract data from a received message
 def extractData(recvText):
     # Placeholder: parse message text for command, lat, long, etc.
+    cmd="None"
     longitude = 0.0
     latitude = 0.0
 
@@ -154,7 +156,7 @@ def extractData(recvText):
          
     except Exception as e:
         logging.warning(f"An unexpected error occurred: {e}")
-        return None, None, None
+        return "None", None, None
 
 def main():
     global base_lat, base_long
