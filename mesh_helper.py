@@ -44,7 +44,7 @@ def loadConfig(path='config/settings.json'):
 # Callback for when a packet is received
 def onReceive(packet, interface):
         global base_lat, base_long
-        print(base_lat)
+        
         #print(packet)  # This is a dictionary 
         try:
             match packet['decoded']['portnum']:
@@ -87,24 +87,33 @@ def onReceive(packet, interface):
                     else:
                         sendMessage(interface, packet['fromId'], text)
                 case "POSITION_APP":
-                    print("Position package...")
+                    #Still need to understand what we will do here 
+                    msg="Position package..."
                 case "NODEINFO_APP":
-                    print("NodeInfo package...")
+                    #Still need to understand what we will do here 
+                    msg="NodeInfo package..."
                 case "ALERT_APP":
-                    print("Alert package...")
+                    #Still need to understand what we will do here 
+                    msg="Alert package..."
                 case _:
-                    print("Some other package...")
+                    #Still need to understand what we will do here 
+                    msg="Some other package..."
         except Exception as e:
-            print("Error parsing packet:", e)
+            logging.warning("Error parsing packet:", e)
 
 # Callback for when the connection is established
 def onConnection(interface, topic=pub.AUTO_TOPIC):
     logging.info("Connected to Meshtastic device.")
+    print("Connected to Meshtastic device.")
     myUser = interface.getMyUser()
     logging.info("Unit Long Name: "+myUser['longName'])
+    print("Unit Long Name: "+myUser['longName'])
     logging.info("Unit Short Name: "+myUser['shortName'])
+    print("Unit Short Name: "+myUser['shortName'])
     logging.info("Unit Id: "+myUser['id'])
+    print("Unit Id: "+myUser['id'])
     logging.info("Model: "+myUser['hwModel'])
+    print("Model: "+myUser['hwModel'])
 
 # Callback for when the connection is lost
 def onConnectionLost(interface):
@@ -139,11 +148,7 @@ def extractData(recvText):
                 cmd = match.group(1)
                 longitude = float(match.group(2))
                 latitude = float(match.group(3))
-                print(f'cmd = {cmd}')
-                print(f'longitude = {longitude}')
-                print(f'latitude = {latitude}')
             else:
-                print("No match found.")
                 cmd = "None"
         return cmd,longitude,latitude
          
@@ -167,7 +172,9 @@ def main():
 
     try:
         logging.info("Good day to MeshBot v0.1")
+        print("Good day to MeshBot v0.1")
         logging.info("Bot is now running. Press Ctrl+C to stop.")
+        print("Bot is now running. Press Ctrl+C to stop.")
 
         # Start the Meshtastic serial interface
         # This might print "No Serial Meshtastic device detected..." if none is found
