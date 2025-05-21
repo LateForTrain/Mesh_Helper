@@ -1,5 +1,6 @@
 import re
 
+
 def extractData(recvText):
     # Placeholder: parse message text for command, lat, long, etc.
     cmd="None"
