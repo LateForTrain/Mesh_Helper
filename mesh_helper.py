@@ -2,7 +2,7 @@
 Mesh_Helper - A Meshtastic Test Utility
 
 Author: LateForTrain
-Updated: 2025-05-21
+Updated: 2025-05-23
 License: MIT
 Repository: https://github.com/LateForTrain/Mesh_Helper
 
@@ -90,15 +90,25 @@ def onReceive(packet, interface):
                 case "POSITION_APP":
                     #Still need to understand what we will do here 
                     msg="Position package..."
+                    logging.info(msg)
+                    logging.info(f"Latitude: {packet['decoded']['position']['latitude']}")
+                    logging.info(f"Longitude: {packet['decoded']['position']['longitude']}")
+                    logging.info(f"Altitude: {packet['decoded']['position']['altitude']}")
+                    logging.info(f"Ground Speed: {packet['decoded']['position']['groundSpeed']}")
+                    logging.info(f"Ground Track: {packet['decoded']['position']['groundTrack']}")
                 case "NODEINFO_APP":
                     #Still need to understand what we will do here 
                     msg="NodeInfo package..."
+                    logging.info(msg)
+                    logging.info(packet)
                 case "ALERT_APP":
                     #Still need to understand what we will do here 
                     msg="Alert package..."
                 case _:
                     #Still need to understand what we will do here 
                     msg="Some other package..."
+                    logging.info(msg)
+                    logging.info(packet)
         except Exception as e:
             logging.warning(f"Error parsing packet: {e}")
 
