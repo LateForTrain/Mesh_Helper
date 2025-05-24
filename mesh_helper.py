@@ -100,7 +100,11 @@ def onReceive(packet, interface):
                     #Still need to understand what we will do here 
                     msg="NodeInfo package..."
                     logging.info(msg)
-                    logging.info(packet)
+                    #logging.info(packet)
+                    logging.info(f"Id: {packet['decoded']['user']['id']}")
+                    logging.info(f"Long Name: {packet['decoded']['user']['longName']}") 
+                    logging.info(f"Short Name: {packet['decoded']['user']['shortName']}") 
+                    logging.info(f"Hardware Model: {packet['decoded']['user']['hwModel']}") 
                 case "ALERT_APP":
                     #Still need to understand what we will do here 
                     msg="Alert package..."
@@ -108,7 +112,7 @@ def onReceive(packet, interface):
                     #Still need to understand what we will do here 
                     msg="Some other package..."
                     logging.info(msg)
-                    logging.info(packet)
+                    #logging.info(packet)
         except Exception as e:
             logging.warning(f"Error parsing packet: {e}")
 
